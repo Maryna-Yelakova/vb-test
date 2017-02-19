@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             var meanings = document.getElementById('meanings');
                             function getMeaningsContent () {
                                 var meaningContent = [];
-                                var errorMessage = "Sorry, we don't have translation right now";
                                 if (typeof cardInfo !== 'undefined' && cardInfo.length > 0){
                                     for (var i = 0; i< cardInfo[0].meanings.length; i ++ ){
                                         meaningContent[i] =  cardInfo[0].meanings[i].translation;
@@ -39,12 +38,26 @@ document.addEventListener("DOMContentLoaded", function() {
                                             meaningContent[i]= "No translation"
                                         }else{}
                                     }
+                                    return meaningContent;
                                 }else{
-                                    meaningContent = meaningContent.toString() + errorMessage;
+                                    return "Sorry, we don't have translation right now";
                                 }
-                                return meaningContent;
                             }
-                            meanings.innerHTML = getMeaningsContent();
+                            var content = getMeaningsContent();
+                            if(content != "Sorry, we don't have translation right now"){
+                                getCardResult();
+                            }
+                            else {
+                                meanings.innerHTML = "Sorry, we don't have translation right now";
+                            }
+                            function getCardResult (){
+                                meanings.innerHTML = '';
+                                for (var j = 0; j < content.length; j++ ){
+                                    var nextMeaning = document.createElement('div');
+                                    nextMeaning.innerHTML = content[j];
+                                    meanings.appendChild(nextMeaning);
+                                }
+                            }
                             meanings.classList.add('showCard');
                         }else {
                             alert( 'Error: ' + (this.status ? this.statusText : 'Query was not successful') );
