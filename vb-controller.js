@@ -1,13 +1,104 @@
 document.addEventListener("DOMContentLoaded", function() {
     
-    var xhr = new XMLHttpRequest();
-    var meanings = document.getElementById('meanings');
-    var card = document.getElementById('card');
-    var image = document.getElementById('image');
-    var nextMeaning = document.createElement('div');
-    var nextMeaningImage = document.createElement('img');
-    var originWord = document.getElementById('originWord');
 
+    var cardModel = {
+        cardInfo: [],
+        meaningContent: [],
+        currentMeaningId: 0,
+        currentOriginWord: '',
+        changeCurrentMeaning: function (meaningId) {
+            this.currentMeaningId = meaningId;
+        },
+        updateCurrentWord: function(word){
+            this.currentOriginWord = word;
+            var xhr = new XMLHttpRequest();
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if (xhr.status == 200) {
+                        cardModel.cardInfo = JSON.parse(xhr.responseText);
+                        cardModel.getMeaningsContent();
+                    }else {
+                        alert( 'Error: ' + (this.status ? this.statusText : 'Query was not successful') );
+                    }
+                }
+            };
+            xhr.open('GET', 'http://dictionary.skyeng.ru/api/v2/search-word-translation?text=mother' + '&text='+ word, false);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send();
+        },
+        getMeaningsContent: function  () {
+            this.meaningContent = [];
+            if (typeof this.cardInfo !== 'undefined' && this.cardInfo.length > 0){
+                for (var i = 0; i< this.cardInfo[0].meanings.length; i ++ ){
+                    this.meaningContent[i] =  {
+                        meaning:this.cardInfo[0].meanings[i].translation,
+                        image:this.cardInfo[0].meanings[i].preview_image_url
+                    };
+                    if(this.meaningContent[i]==""){
+                        this.meaningContent[i]= "No translation"
+                    }else{}
+                }
+            }else{
+                this.meaningContent[0] = {
+                    meaning: "Sorry, we don't have translation right now",
+                    image: ''
+                };
+            }
+            this.changeCurrentMeaning(0);
+        }
+
+    };
+
+    var cardView = {
+        meanings: document.getElementById('meanings'),
+        card: document.getElementById('card'),
+        image: document.getElementById('image'),
+        nextMeaning: document.createElement('div'),
+        nextMeaningImage: document.createElement('img'),
+        originWord: document.getElementById('originWord'),
+        depictCard: function () {
+            this.meanings.innerHTML = '';
+            this.nextMeaning.innerHTML = '';
+            this.nextMeaningImage.src = '';
+            this.originWord.innerHTML = '';
+            this.originWord.innerHTML = cardModel.currentOriginWord;
+            this.nextMeaningImage.src = cardModel.meaningContent[0].image;
+            this.image.replaceChild(this.nextMeaningImage, this.image.childNodes[0]);
+            for (var j = 0; j < cardModel.meaningContent.length; j++) {
+                this.nextMeaning.innerHTML += '<div class="meaningItem" id="' + j + '">' + cardModel.meaningContent[j].meaning + '</div>';
+                this.meanings.appendChild(this.nextMeaning);
+                this.nextMeaning.classList.add('translate-word');
+            }
+        },
+        updateCoordinates: function (coordinate) {
+             this.card.style.top = coordinate.top + 'px';
+             this.card.style.left = coordinate.left + 'px';
+        },
+        showWordCard: function () {
+            this.card.classList.toggle('hidden',false);
+        },
+        hideCard: function () {
+            this.card.classList.toggle('hidden',true);
+        },
+        isClickInside: function (target) {
+            return cardView.card.contains(target);
+        },
+        changeMeaningImage: function () {
+            this.nextMeaningImage.src = cardModel.meaningContent[cardModel.currentMeaningId].image;
+            this.image.replaceChild(this.nextMeaningImage, this.image.childNodes[0]);
+        }
+       
+    };
+    
+    document.addEventListener('mouseover', function(event) {
+        if(event.target.classList.contains('meaningItem')) {
+           cardModel.changeCurrentMeaning(event.target.id);
+           cardView.changeMeaningImage();
+        }
+        
+        
+    });
     function getSelectionText(){
         var selectedText = "";
         var selected, oRange, oRect;
@@ -21,90 +112,34 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     
+
+    
     document.addEventListener('mouseup', function(){
-        var text = getSelectionText()[0];
-        if (text.length > 0){
+        var currenrSelection = getSelectionText();
+        var text = currenrSelection[0];
+        if (text.length > 0) {
             var textArr = text.split(' ');
             var word;
-            if (textArr[0].toString() !== ''){
-                 word = textArr[0].toString();
-            } else{
-                 word = textArr[1].toString();
+            if (textArr[0].toString() !== '') {
+                word = textArr[0].toString();
+            } else {
+                word = textArr[1].toString();
             }
-            if(word){
-                xhr.open('GET', 'http://dictionary.skyeng.ru/api/v2/search-word-translation?text=mother' + '&text='+ word, true);
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState == 4) {
-                        if(xhr.status == 200) {
-                            var cardInfo = JSON.parse(xhr.responseText);
-                            function getMeaningsContent () {
-                                var meaningContent = [];
-                                if (typeof cardInfo !== 'undefined' && cardInfo.length > 0){
-                                    for (var i = 0; i< cardInfo[0].meanings.length; i ++ ){
-                                        meaningContent[i] =  {
-                                            meaning:cardInfo[0].meanings[i].translation,
-                                            image:cardInfo[0].meanings[i].preview_image_url,
-                                            id:cardInfo[0].meanings[i].id
-                                        };
-                                        if(meaningContent[i]==""){
-                                            meaningContent[i]= "No translation"
-                                        }else{}
-                                    }
-                                    return meaningContent;
-                                }else{
-                                    return "Sorry, we don't have translation right now";
-                                }
-                            }
-                            var content = getMeaningsContent();
-                            if(content != "Sorry, we don't have translation right now"){
-                                getCardResult();
-                            }
-                            else {
-                                meanings.innerHTML = "Sorry, we don't have translation right now";
-                            }
-                            function getCardResult (){
-                                meanings.innerHTML = '';
-                                nextMeaning.innerHTML = '';
-                                nextMeaningImage.src = '';
-                                originWord.innerHTML = '';
-                                for (var j = 0; j < content.length; j++ ){
-                                    var item = content[j];
-                                   
-                                    nextMeaning.innerHTML += '<p>'+ item.meaning + '</p>';
-                                    meanings.appendChild(nextMeaning);
-                                    nextMeaningImage.src = item.image;
-                                    image.replaceChild(nextMeaningImage, image.childNodes[0]);
-                                    originWord.innerHTML = word;
-                                    nextMeaning.classList.add('translate-word');
-                                    
-                                }
-                            }
-                            var coordinate = getSelectionText()[1];
-                            card.style.top = coordinate.top + 'px';
-                            card.style.left = coordinate.left + 'px';
-                            card.classList.remove('hidden');
-                            card.classList.add('showCard');
-                        }else {
-                            alert( 'Error: ' + (this.status ? this.statusText : 'Query was not successful') );
-                        }
-                    }
-                };
-                xhr.send();
-            } else{
-                
+            if (word) {
+                cardModel.updateCurrentWord(word);
+                cardView.depictCard();
+                cardView.updateCoordinates(currenrSelection[1]);
+                cardView.showWordCard();
+        
             }
         }
     }, false);
-    document.addEventListener('click', function(event) {
-        var isClickInside = card.contains(event.target);
-
-        if (!isClickInside) {
-            card.classList.remove('showCard');
-            card.classList.add('hidden');
+    document.addEventListener('mousedown', function(event) {
+        if (!cardView.isClickInside(event.target)) {
+            cardView.hideCard();
         }
     });
+
 
 });
 

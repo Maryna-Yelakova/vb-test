@@ -42,10 +42,8 @@ body {
     margin: 0 0 14px;
 }
 
-.translate-word p:hover {
+.translate-word div:hover {
     font-size: 17px;
     font-weight: 700;
 }
-.showCard {
-    display: block;
-}
+
