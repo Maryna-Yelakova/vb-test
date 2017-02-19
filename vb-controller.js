@@ -82,7 +82,6 @@ document.addEventListener("DOMContentLoaded", function() {
                                 }
                             }
                             var coordinate = getSelectionText()[1];
-                            console.log(coordinate.top, coordinate.left);
                             card.style.top = coordinate.top + 'px';
                             card.style.left = coordinate.left + 'px';
                             card.classList.remove('hidden');
@@ -98,6 +97,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     }, false);
+    document.addEventListener('click', function(event) {
+        var isClickInside = card.contains(event.target);
+
+        if (!isClickInside) {
+            card.classList.remove('showCard');
+            card.classList.add('hidden');
+        }
+    });
+
 });
 
 
