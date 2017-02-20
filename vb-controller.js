@@ -9,23 +9,34 @@ document.addEventListener("DOMContentLoaded", function() {
         changeCurrentMeaning: function (meaningId) {
             this.currentMeaningId = meaningId;
         },
-        updateCurrentWord: function(word){
+        updateMeanings: function(xhr_resp){
+            cardModel.cardInfo = JSON.parse(xhr_resp);
+            cardModel.getMeaningsContent();
+        },
+        requestCurrentWord: function(word){
             this.currentOriginWord = word;
-            var xhr = new XMLHttpRequest();
-
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4) {
-                    if (xhr.status == 200) {
-                        cardModel.cardInfo = JSON.parse(xhr.responseText);
-                        cardModel.getMeaningsContent();
-                    }else {
-                        alert( 'Error: ' + (this.status ? this.statusText : 'Query was not successful') );
+            return new Promise(function (resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'http://dictionary.skyeng.ru/api/v2/search-word-translation?text=mother' + '&text='+ word, true);
+                xhr.onload = function () {
+                    if (this.status >= 200 && this.status < 300) {
+                        resolve(xhr.response);
+                    } else {
+                        reject({
+                            status: this.status,
+                            statusText: xhr.statusText
+                        });
                     }
-                }
-            };
-            xhr.open('GET', 'http://dictionary.skyeng.ru/api/v2/search-word-translation?text=mother' + '&text='+ word, false);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.send();
+                };
+                xhr.onerror = function () {
+                    reject({
+                        status: this.status,
+                        statusText: xhr.statusText
+                    });
+                };
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.send();
+            })
         },
         getMeaningsContent: function  () {
             this.meaningContent = [];
@@ -126,10 +137,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 word = textArr[1].toString();
             }
             if (word) {
-                cardModel.updateCurrentWord(word);
-                cardView.depictCard();
-                cardView.updateCoordinates(currenrSelection[1]);
-                cardView.showWordCard();
+                cardModel.requestCurrentWord(word)
+                    .then(function(data){
+                        cardModel.updateMeanings(data);
+                        cardView.depictCard();
+                        cardView.updateCoordinates(currenrSelection[1]);
+                        cardView.showWordCard();
+                    })
         
             }
         }
@@ -139,8 +153,6 @@ document.addEventListener("DOMContentLoaded", function() {
             cardView.hideCard();
         }
     });
-
-
 });
 
 
